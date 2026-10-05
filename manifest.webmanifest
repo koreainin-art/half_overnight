@@ -1,8 +1,8 @@
 {
-  "id": "/half-overnight/",
+  "id": "./",
   "name": "H·O",
   "short_name": "H·O",
-  "description": "Half Overnight — 코스닥150·업종 ETF 오버나이트 + 공포 사냥",
+  "description": "H·O",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
