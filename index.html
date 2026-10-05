@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B0B0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="H·O">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>H·O</title>
+<style>
+/* 오늘 할 일 → 계좌 A·B → 내일 아침 → 설정 */
+:root{
+  color-scheme:light;
+  --bg:#EEF1EF; --panel:#FFFFFF; --ink:#18212B; --muted:#5B6773; --line:#C4CEC9; --field:#FFFFFF; --fieldline:#9FB0A8;
+  --accent:#12615E; --accent-soft:#DCEDEA;
+  --buy:#C8323F; --buy-soft:#FBE9EB; --sell:#2152C4; --sell-soft:#E7EDFB;
+  --warn:#9A5B00; --warn-soft:#FFF1D6; --ok:#1F7A3E; --ok-soft:#E1F3E7;
+  --panic:#B4232F; --panic-ink:#FFFFFF;
+  --shadow:0 1px 2px rgba(24,33,43,.06),0 4px 16px rgba(24,33,43,.05);
+  --sans:system-ui,-apple-system,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:ui-monospace,"Roboto Mono","Noto Sans Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#10161B; --panel:#172027; --ink:#E6ECEA; --muted:#93A1AB; --line:#2A3740; --field:#0D1317; --fieldline:#4A5C68;
+    --accent:#5FC2BC; --accent-soft:#18332F;
+    --buy:#FF6B78; --buy-soft:#3A1C21; --sell:#7EA2FF; --sell-soft:#1A2544;
+    --warn:#F2B55B; --warn-soft:#3A2B12; --ok:#6FD394; --ok-soft:#16301F;
+    --panic:#E5484D; --panic-ink:#FFFFFF; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#10161B; --panel:#172027; --ink:#E6ECEA; --muted:#93A1AB; --line:#2A3740; --field:#0D1317; --fieldline:#4A5C68;
+  --accent:#5FC2BC; --accent-soft:#18332F;
+  --buy:#FF6B78; --buy-soft:#3A1C21; --sell:#7EA2FF; --sell-soft:#1A2544;
+  --warn:#F2B55B; --warn-soft:#3A2B12; --ok:#6FD394; --ok-soft:#16301F;
+  --panic:#E5484D; --panic-ink:#FFFFFF; --shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 48px}
+[hidden]{display:none!important}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px}
+h1{font-size:1.45rem;font-weight:700;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:.85rem;margin:2px 0 0;font-family:var(--mono)}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 12px;font-size:.88rem;font-weight:500}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+button:disabled{opacity:.5;cursor:default}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.verdict{display:flex;flex-direction:column;gap:6px}
+.verdict .k{font-size:.78rem;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.verdict .v{font-size:1.5rem;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.verdict .d{color:var(--muted);font-size:.9rem}
+.verdict.go .v{color:var(--buy)} .verdict.rest .v{color:var(--muted)}
+.verdict.panic{background:var(--panic);border-color:var(--panic)} .verdict.panic .k,.verdict.panic .v,.verdict.panic .d{color:var(--panic-ink)}
+.accts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.acct{display:flex;flex-direction:column;gap:10px}
+.acct h2{font-size:.8rem;letter-spacing:.06em;color:var(--muted);margin:0;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.pill{font-size:.75rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.buy{background:var(--buy-soft);color:var(--buy)} .pill.rest{background:var(--bg);color:var(--muted)}
+.pill.lev{background:var(--warn-soft);color:var(--warn)} .pill.panic{background:var(--panic);color:var(--panic-ink)} .pill.sell{background:var(--sell-soft);color:var(--sell)}
+.etf{font-size:1.15rem;font-weight:700}
+.etf small{font-family:var(--mono);font-weight:500;color:var(--muted);font-size:.8rem;margin-left:6px}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kv div{background:var(--bg);border-radius:8px;padding:7px 9px;min-width:0}
+.kv span{display:block;font-size:.72rem;color:var(--muted)}
+.kv b{font-family:var(--mono);font-size:.95rem;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.why{font-size:.82rem;color:var(--muted)}
+.note{font-size:.84rem;border-radius:8px;padding:9px 11px;background:var(--warn-soft);color:var(--warn)}
+.note.ok{background:var(--ok-soft);color:var(--ok)}
+.sec h3{font-size:.8rem;letter-spacing:.06em;color:var(--muted);margin:0 0 10px;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.meter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.meter > div{background:var(--bg);border-radius:8px;padding:8px 10px}
+.meter span{display:block;font-size:.72rem;color:var(--muted)}
+.meter b{font-family:var(--mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:6px;position:relative}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar em{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--panic)}
+label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);font-weight:500;min-width:0}
+input{font-family:var(--mono);font-size:.95rem;width:100%;padding:8px 10px;border:1.5px solid var(--fieldline);border-radius:7px;background:var(--field);color:var(--ink);min-height:42px;font-variant-numeric:tabular-nums}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.fields .full{grid-column:1/-1}
+details summary{cursor:pointer;font-weight:600;font-size:.92rem}
+details[open] summary{margin-bottom:12px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;font-size:.8rem;white-space:nowrap;width:100%}
+th,td{padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th{background:var(--accent-soft);font-weight:600;position:sticky;top:0}
+td{font-family:var(--mono)} td:first-child,th:first-child{text-align:left;font-family:var(--sans)}
+td.st{font-family:var(--sans);text-align:left}
+tr.pick td{background:var(--buy-soft)}
+.x{color:var(--muted)}
+.toast{font-size:.84rem;color:var(--ok);min-height:1.2em}
+.foot{color:var(--muted);font-size:.78rem;line-height:1.6}
+.steps{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+@media (max-width:480px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}.verdict .v{font-size:1.3rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>H·O <span style="font-weight:500;font-size:.9rem;color:var(--muted)">Half Overnight</span></h1>
+      <p class="sub" id="asof">–</p>
+    </div>
+    <div class="tools">
+      <button type="button" id="btnCopy">주문 복사</button>
+      <button type="button" class="primary" id="btnLoad">지금 불러오기</button>
+    </div>
+  </header>
+
+  <section class="panel verdict" id="verdict" aria-live="polite">
+    <span class="k">오늘 할 일</span>
+    <span class="v" id="vTitle">–</span>
+    <span class="d" id="vDesc"></span>
+  </section>
+  <div id="notes"></div>
+  <div class="row" id="pRow" style="justify-content:flex-end" hidden><button type="button" class="primary" id="btnPanic" hidden>레버리지 매수 완료</button></div>
+
+  <div class="accts">
+    <section class="panel acct" id="acctA">
+      <h2><span>계좌 A</span><span class="pill rest" id="aPill">–</span></h2>
+      <div class="etf" id="aEtf">–</div>
+      <div class="kv"><div><span>지정가</span><b id="aPx">–</b></div><div><span>수량</span><b id="aQty">–</b></div><div><span>금액</span><b id="aAmt">–</b></div></div>
+      <div class="why" id="aWhy"></div>
+    </section>
+    <section class="panel acct" id="acctB">
+      <h2><span>계좌 B</span><span class="pill rest" id="bPill">–</span></h2>
+      <div class="etf" id="bEtf">–</div>
+      <div class="kv"><div><span>지정가</span><b id="bPx">–</b></div><div><span>수량</span><b id="bQty">–</b></div><div><span>금액</span><b id="bAmt">–</b></div></div>
+      <div class="why" id="bWhy"></div>
+    </section>
+  </div>
+
+  <section class="panel sec" id="manBox" hidden>
+    <h3>등락 종목 수를 자동으로 읽지 못했습니다</h3>
+    <div class="fields">
+      <label for="manDown">하락 종목 비율 (%) · 증권사 앱의 코스피+코스닥 하락 종목 수 ÷ 전체<input id="manDown" type="text" inputmode="decimal" placeholder="예: 45"></label>
+    </div>
+  </section>
+
+  <section class="panel sec">
+    <h3>내일 아침 (08:30~08:59 한국시간)</h3>
+    <ol class="steps" id="tomorrow"><li>오늘 매수가 없으면 할 일이 없습니다.</li></ol>
+  </section>
+
+  <section class="panel">
+    <details id="detSet">
+      <summary>설정</summary>
+      <div class="fields">
+        <label class="full" for="gUrl">시세 서버 주소 (Apps Script 웹 앱 URL)<input id="gUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
+        <label for="gTok">비밀번호 (스크립트의 TOKEN)<input id="gTok" type="password" autocomplete="off"></label>
+        <label for="amtA">계좌 A 투자금 (원)<input id="amtA" type="text" inputmode="numeric" placeholder="5,000,000"></label>
+        <label for="amtB">계좌 B 투자금 (원)<input id="amtB" type="text" inputmode="numeric" placeholder="5,000,000"></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="primary" id="btnSave">저장하고 불러오기</button>
+      </div>
+      <p class="toast" id="toast"></p>
+    </details>
+  </section>
+
+
+</div>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem('bb-'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('bb-'+k,JSON.stringify(v))}catch(e){}}};
+const won=x=>Math.round(x).toLocaleString('ko-KR');
+const pnum=v=>{const x=parseFloat(String(v||'').replace(/[^\d.\-]/g,''));return isFinite(x)?x:NaN};
+const dot=d=>d?d.slice(0,4)+'.'+d.slice(4,6)+'.'+d.slice(6):'';
+let LAST=null;
+function acct(px,r){
+  const amt=pnum($(px==='a'?'amtA':'amtB').value);
+  const map={rest:['쉼','rest'],buy:[r.lev?'레버리지':'매수',r.lev?'lev':'buy'],lev3:['레버리지 3일','panic'],hold:['보유 중','panic']};
+  const [t,c]=map[r.act]||['쉼','rest'];$(px+'Pill').textContent=t;$(px+'Pill').className='pill '+c;
+  if(r.act==='rest'){$(px+'Etf').textContent='쉼';['Px','Qty','Amt'].forEach(s=>$(px+s).textContent='–')}
+  else{$(px+'Etf').innerHTML=r.name+'<small>'+r.code+'</small>';
+    if(r.act==='hold'){$(px+'Px').textContent='보유';$(px+'Qty').textContent='–';$(px+'Amt').textContent='–'}
+    else{const q=amt>0?Math.floor(amt*0.998/r.lim):0;$(px+'Px').textContent=won(r.lim);$(px+'Qty').textContent=amt>0?won(q)+'주':'금액 입력';$(px+'Amt').textContent=amt>0?won(q*r.lim):'–'}}
+  $(px+'Why').textContent=r.act==='hold'?'보유 '+(LAST.held)+'/3일째':r.act==='lev3'?'3거래일 보유':'';
+}
+function render(){
+  const r=LAST,V=$('verdict'),notes=[];
+  if(!r){V.className='panel verdict rest';$('vTitle').textContent='서버를 연결해 주세요';$('vDesc').textContent='설정에 서버 주소와 비밀번호를 넣고 "저장하고 불러오기"를 누르세요.';return}
+  if(r.error){V.className='panel verdict rest';$('vTitle').textContent='불러오지 못했습니다';$('vDesc').textContent=r.error;return}
+  acct('a',r.A);acct('b',r.B);
+  if(r.closed&&!r.inHold){V.className='panel verdict rest';$('vTitle').textContent=r.closed==='holiday'?'오늘은 휴장일입니다':'장 시작 전입니다';$('vDesc').textContent=r.closed==='holiday'?'마지막 거래일 '+dot(r.date):'15:20 이후에 다시 불러오세요.'}
+  else if(r.inHold){V.className='panel verdict panic';$('vTitle').textContent='보유 중 ('+r.held+'/3일)';$('vDesc').textContent='두 계좌 모두 그대로 보유합니다.'}
+  else if(r.panicToday){V.className='panel verdict panic';$('vTitle').textContent='두 계좌 모두 레버리지 매수';$('vDesc').textContent='오늘 종가에 사서 3거래일 보유합니다. 매수 후 아래 버튼을 누르세요.'}
+  else{const n=[r.A,r.B].filter(x=>x.act==='buy').length;
+    if(n){V.className='panel verdict go';$('vTitle').textContent='오늘 종가에 매수합니다';$('vDesc').textContent=(n===2?'계좌 A·B 모두':'한 계좌만')+' · 15:20~15:29 동시호가'}
+    else{V.className='panel verdict rest';$('vTitle').textContent='오늘은 쉽니다';$('vDesc').textContent=''}}
+  if(r.sellHold)notes.push('보유 3일째입니다. <b>오늘 종가에 KODEX 코스닥150레버리지 전량 매도</b> 후 위 주문대로 매수하세요. 매도 후 아래 버튼을 누르세요.');
+  if(!r.closed&&r.hm>=900&&r.hm<1515)notes.push('아직 장중입니다. 15:20 이후 다시 불러오세요.');
+  if(r.errors&&r.errors.length)notes.push('서버 알림: '+r.errors.join(' / '));
+  $('notes').innerHTML=notes.map(n=>'<div class="note">'+n+'</div>').join('');
+  $('manBox').hidden=!r.needManual&&r.ratioSrc!=='수동';
+  const pb=$('btnPanic'),E=store.get('panic',null);
+  if(r.panicToday&&!E){pb.hidden=false;pb.textContent='레버리지 매수 완료';pb.dataset.k='buy'}
+  else if(E&&r.sellHold){pb.hidden=false;pb.textContent='레버리지 매도 완료';pb.dataset.k='clear'}
+  else if(E&&!r.inHold){pb.hidden=false;pb.textContent='보유 기록 지우기';pb.dataset.k='clear'}
+  else pb.hidden=true;
+  $('pRow').hidden=pb.hidden;$('notes').hidden=!notes.length;
+  const tm=[];[['계좌 A',r.A],['계좌 B',r.B]].forEach(([n,x])=>{if(x.act==='buy')tm.push('<li>'+n+': '+x.name+' 전량 <b>시장가 매도</b> (09:00 시가)</li>')});
+  if(r.panicToday||r.inHold)tm.push('<li>레버리지는 팔지 않습니다 (3거래일째 종가 매도).</li>');
+  $('tomorrow').innerHTML=tm.length?tm.join(''):'<li>없음</li>';
+}
+async function load(fresh){
+  const url=$('gUrl').value.trim(),tok=$('gTok').value;
+  if(!url){LAST=null;render();$('detSet').open=true;return}
+  $('btnLoad').disabled=true;$('asof').textContent='불러오는 중…';
+  const E=store.get('panic',null),man=$('manDown').value.trim();
+  const q='token='+encodeURIComponent(tok)+(E&&E.entry?'&entry='+E.entry:'')+(man?'&man='+encodeURIComponent(pnum(man)):'')+(fresh?'&fresh=1':'');
+  try{const res=await fetch(url+(url.includes('?')?'&':'?')+q,{redirect:'follow'});const j=await res.json();
+    LAST=j;if(!j.error)store.set('last',j);$('asof').textContent=j.error?'':'시세 '+(j.asof||'')+' (한국시간)';render()}
+  catch(e){$('asof').textContent='불러오지 못했습니다: '+e.message;const c=store.get('last',null);if(c){LAST=c;render();$('notes').hidden=false;$('notes').insertAdjacentHTML('afterbegin','<div class="note">마지막으로 받은 값('+(c.asof||'')+')입니다.</div>')}}
+  finally{$('btnLoad').disabled=false}
+}
+['gUrl','gTok','amtA','amtB'].forEach(id=>{$(id).value=store.get(id,'');$(id).addEventListener('change',()=>{store.set(id,$(id).value);if(LAST&&!LAST.error&&(id==='amtA'||id==='amtB'))render()})});
+['amtA','amtB'].forEach(id=>$(id).addEventListener('blur',()=>{const v=pnum($(id).value);if(isFinite(v))$(id).value=won(v)}));
+$('manDown').addEventListener('change',()=>load(false));
+$('btnLoad').onclick=()=>load(true);
+$('btnSave').onclick=()=>{['gUrl','gTok','amtA','amtB'].forEach(id=>store.set(id,$(id).value));$('toast').textContent='저장했습니다.';load(true)};
+$('btnPanic').onclick=()=>{if(!LAST||LAST.error)return;store.set('panic',$('btnPanic').dataset.k==='buy'?{entry:LAST.date}:null);load(false)};
+$('btnCopy').onclick=()=>{if(!LAST||LAST.error)return;const L=['H·O '+dot(LAST.date)];
+  [['계좌 A','a',LAST.A],['계좌 B','b',LAST.B]].forEach(([n,p,r])=>L.push(n+': '+(r.act==='rest'?'쉼':r.name+' '+$(p+'Px').textContent+'원 × '+$(p+'Qty').textContent)));
+  const t=L.join('\n');const done=()=>{$('btnCopy').textContent='복사했습니다';setTimeout(()=>$('btnCopy').textContent='주문 복사',1800)};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done,()=>alert(t));else alert(t)};
+render();load(false);
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+})();
+</script>
+</body></html>
